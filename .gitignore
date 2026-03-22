@@ -1,0 +1,8 @@
+node_modules/
+.auth/
+playwright-report/
+test-results/
+*.db
+*.db-journal
+.env
+dist/
