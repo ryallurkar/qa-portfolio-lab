@@ -16,7 +16,7 @@
     "test:e2e": "playwright test --project=chromium"
   },
   "prisma": {
-    "seed": "node -r ts-node/register prisma/seed.ts"
+    "seed": "node prisma/run-seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
