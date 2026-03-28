@@ -1,0 +1,73 @@
+name: Run Tests
+
+on:
+  workflow_call:
+    inputs:
+      test-command:
+        description: "npm script to run (e.g. npm test or npm run test:e2e)"
+        type: string
+        required: true
+      artifact-name:
+        description: "Name for the uploaded Playwright report artifact"
+        type: string
+        required: true
+      artifact-retention-days:
+        description: "How many days to keep the artifact"
+        type: number
+        default: 7
+      append-run-id:
+        description: "Append the workflow run ID to the artifact name (useful for nightly runs)"
+        type: boolean
+        default: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
+      VITE_API_BASE_URL: http://localhost:3022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_ENV: development
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Apply database migrations and seed
+        run: npm run db:deploy && npm run db:seed
+
+      - name: Start API server in background
+        run: npm run start:service &
+
+      - name: Start frontend in background
+        run: npm run dev:client &
+
+      - name: Wait for API to be ready
+        run: npx wait-on tcp:localhost:3022 --timeout 30000
+
+      - name: Wait for frontend to be ready
+        run: npx wait-on tcp:localhost:3000 --timeout 30000
+
+      - name: Run tests
+        run: ${{ inputs.test-command }}
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.append-run-id && format('{0}-{1}', inputs.artifact-name, github.run_id) || inputs.artifact-name }}
+          path: playwright-report/
+          retention-days: ${{ inputs.artifact-retention-days }}

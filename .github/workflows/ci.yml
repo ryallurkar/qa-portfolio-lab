@@ -1,0 +1,15 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  e2e:
+    name: E2E tests
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      test-command: npm run test:e2e
+      artifact-name: test-report
+    secrets: inherit

@@ -1,0 +1,17 @@
+name: Nightly Tests
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  full-suite:
+    name: Full test suite
+    uses: ./.github/workflows/run-tests.yml
+    with:
+      test-command: npm test
+      artifact-name: nightly-report
+      artifact-retention-days: 30
+      append-run-id: true
+    secrets: inherit
