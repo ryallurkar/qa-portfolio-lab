@@ -24,8 +24,16 @@ async function globalSetup() {
 
   const { accessToken } = await response.json();
 
-  // Write the token as Playwright localStorage state so the chromium project
-  // picks it up automatically for every E2E test.
+  // Fetch alice's profile so we can persist the user object alongside the token.
+  // The auth store rehydrates both from localStorage on page load — without the
+  // user object, the receiver dropdown filter would silently fail.
+  const meResponse = await context.get("http://localhost:3022/auth/me", {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const user = await meResponse.json();
+
+  // Write both values as Playwright localStorage state so the chromium project
+  // picks them up automatically for every E2E test.
   fs.mkdirSync(path.dirname(AUTH_FILE), { recursive: true });
   fs.writeFileSync(
     AUTH_FILE,
@@ -36,6 +44,7 @@ async function globalSetup() {
           origin: "http://localhost:3000",
           localStorage: [
             { name: "accessToken", value: accessToken },
+            { name: "authUser", value: JSON.stringify(user) },
           ],
         },
       ],

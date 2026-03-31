@@ -30,18 +30,22 @@ interface AuthState {
   clearAuth: () => void;
 }
 
+const storedUser = localStorage.getItem("authUser");
+
 export const useAuthStore = create<AuthState>((set) => ({
   // Initialise from localStorage so the session survives a page refresh
   token: localStorage.getItem("accessToken"),
-  user: null,
+  user: storedUser ? (JSON.parse(storedUser) as AuthUser) : null,
 
   setAuth: (token, user) => {
     localStorage.setItem("accessToken", token);
+    localStorage.setItem("authUser", JSON.stringify(user));
     set({ token, user });
   },
 
   clearAuth: () => {
     localStorage.removeItem("accessToken");
+    localStorage.removeItem("authUser");
     set({ token: null, user: null });
   },
 }));
