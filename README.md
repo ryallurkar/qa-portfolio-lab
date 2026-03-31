@@ -1,128 +1,111 @@
-# Kudos App — Playwright Test Automation Portfolio
+# Kudos App — Playwright Test Automation
 
-A portfolio project demonstrating production-grade test automation with Playwright. The app itself is a simple kudos board; the real showcase is the testing infrastructure built on top of it.
+[![CI](https://github.com/ryallurkar/qa-portfolio-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/ryallurkar/qa-portfolio-lab/actions/workflows/ci.yml)
+[![Nightly](https://github.com/ryallurkar/qa-portfolio-lab/actions/workflows/nightly.yml/badge.svg)](https://github.com/ryallurkar/qa-portfolio-lab/actions/workflows/nightly.yml)
 
----
+**41 tests — 30 API, 11 E2E — all passing.**
 
-## What this repo demonstrates
-
-- **Playwright API tests** — full coverage of REST endpoints (auth, kudos CRUD, validation, sanitization)
-- **Playwright E2E tests** — browser-level flows using the Page Object Model pattern
-- **Global setup with auth caching** — signs in once before the suite, writes the token to `.auth/user.json`, reused across all E2E tests
-- **Page Object Models** — `LoginPage` and `KudosWallPage` encapsulate all selectors and navigation
-- **Centralised selectors** — every `data-testid` lives in one `selectors.ts` file; no hardcoded strings in test files
-- **Reusable CI workflow** — a single parameterised GitHub Actions workflow called by both the PR check and the nightly run
+A portfolio project built to demonstrate production-level test automation skills using Playwright. The app (a simple kudos board) is the vehicle; the test infrastructure is the point.
 
 ---
 
-## Prerequisites
+## What this covers
 
-- Node.js 20+
-- npm 9+
+**API testing**
+- Full endpoint coverage: auth, kudos CRUD, input validation, HTML sanitization
+- Boundary value testing on message length (3-char lower, 500-char upper)
+- Negative cases: wrong credentials, missing fields, invalid types, non-existent foreign keys
+- Security assertions: no password field ever leaks in any response
+- Auth guard verification on every protected endpoint
 
-No Docker required. The database is SQLite — it lives in a local file.
+**E2E testing (Playwright + Chromium)**
+- Login flow: valid credentials, wrong password, empty submit
+- Kudos wall: seed data visible on load, author → receiver display, modal open/close
+- Form interaction: receiver dropdown self-exclusion, optimistic feed update after submit
+- All selectors flow through a single `selectors.ts` — no hardcoded `data-testid` strings in test files
+
+**Test infrastructure**
+- `globalSetup` seeds the database and caches a signed-in session before any test runs — E2E tests never touch the login flow to set up state
+- Page Object Models (`LoginPage`, `KudosWallPage`) keep specs readable and resilient to UI change
+- Reusable GitHub Actions workflow parameterised for both PR checks (E2E only, fast) and nightly runs (full suite, 30-day artifact retention)
+
+---
+
+## Why these tool choices
+
+| Tool | Why |
+|---|---|
+| **Playwright** | Handles both API and browser tests in one framework — no Jest/Supertest split, one config, one runner |
+| **SQLite** | Zero infrastructure — anyone cloning the repo can run the full suite with just `npm install` |
+| **Reusable workflow** | One workflow definition, two callers — avoids duplicating job steps across PR and nightly pipelines |
+| **Global setup auth cache** | Signs in once, writes to `.auth/user.json` — E2E tests start authenticated without repeating the login flow |
 
 ---
 
 ## Local setup
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/ryallurkar/qa-portfolio-lab.git
 cd qa-portfolio-lab
 npm install
-cp .env.example .env        # set ACCESS_TOKEN_SECRET to a strong random value
-npm run db:deploy           # apply migrations
-npm run db:seed             # seed users and sample kudos
-npm run dev                 # start API (port 3022) + frontend (port 3000)
+cp .env.example .env        # fill in ACCESS_TOKEN_SECRET
+npm run db:deploy
+npm run db:seed
+npm run dev                  # API on :3022, frontend on :3000
 ```
+
+No Docker. No Postgres. Just Node and npm.
 
 ---
 
 ## Running tests
 
+Both servers must be running before executing tests (`npm run dev`).
+
 ```bash
-# All tests (API + E2E)
-npm test
-
-# API tests only
-npm run test:api
-
-# E2E tests only
-npm run test:e2e
+npm test              # full suite — 41 tests
+npm run test:api      # API tests only — 30 tests
+npm run test:e2e      # E2E tests only — 11 tests
 ```
 
-The global setup step seeds the database and caches an auth token automatically before any test runs.
+Global setup runs automatically: seeds the DB and caches an auth token before the first test.
 
 ---
 
-## Test coverage
+## Test breakdown
 
-| Suite | File | Tests |
-|---|---|---|
-| API — auth | `tests/api/auth.api.spec.ts` | sign-in (valid, wrong password, unknown user, missing fields), /me (valid token, no token) |
-| API — kudos | `tests/api/kudos.api.spec.ts` | happy path, authorId override ignored, no password leak, auth guard, message validation (missing/short/boundary/long), receiverId validation (missing/string/zero/negative/float/nonexistent), HTML sanitization, GET shape |
-| E2E — auth | `tests/e2e/auth.e2e.spec.ts` | page loads, valid login redirects, wrong password shows error, empty submit stays on page |
-| E2E — kudos wall | `tests/e2e/kudos.e2e.spec.ts` | wall loads, seed data visible, author/receiver shown, modal opens, dropdown excludes self, submit adds kudo to feed, modal closes |
-
----
-
-## Must have / Should have / Nice to have
-
-### Must have
-- [x] API tests covering all validation rules and error codes
-- [x] E2E tests for login and kudos submission flows
-- [x] Global setup with token caching (no repeated sign-ins)
-- [x] Page Object Models for all pages
-- [x] Centralised `data-testid` selectors
-- [x] Idempotent seed (safe to re-run before each suite)
-- [x] Reusable GitHub Actions CI workflow
-
-### Should have
-- [ ] Visual regression snapshots for the kudos wall
-- [ ] Accessibility checks with `axe-playwright`
-- [ ] Test tagging (`@smoke`, `@regression`) for selective runs
-
-### Nice to have
-- [ ] Allure reporter integration
-- [ ] Slack notification on nightly failure
-- [ ] Parallel API test sharding
-
----
-
-## CI setup
-
-Two workflows call the shared `run-tests.yml` reusable workflow:
-
-| Workflow | Trigger | Command | Artifact retention |
-|---|---|---|---|
-| `ci.yml` | Pull request → `main` | `npm run test:e2e` | 7 days |
-| `nightly.yml` | Daily at 00:00 UTC + manual | `npm test` | 30 days |
-
-### Required repository secrets
-
-| Secret | Description |
+| Suite | Coverage |
 |---|---|
-| `NODE_ENV` | Set to `production` in CI |
-| `SERVICE_PORT` | API port (3022) |
-| `ACCESS_TOKEN_SECRET` | Long random string for JWT signing |
-| `VITE_API_BASE_URL` | Full URL of the API (`http://localhost:3022` in CI) |
+| `auth.api.spec.ts` | sign-in (valid, wrong password, unknown user, missing username, missing password, JWT format), `/me` (valid token, no token), `/users` (no token, shape + no password, all 5 seed users present) |
+| `kudos.api.spec.ts` | happy path (shape, createdAt, author/receiver fields), authorId override ignored, no password leak, auth guard, message validation (missing, <3 chars, =3 chars, =500 chars, >500 chars), receiverId validation (missing, string, 0, negative, float, non-existent → 404), HTML sanitization, GET shape + ordering |
+| `auth.e2e.spec.ts` | page loads with form visible, valid login redirects to `/kudos`, wrong password shows error message, empty submit stays on login page |
+| `kudos.e2e.spec.ts` | wall loads with heading and button, seed data visible, author → receiver shown on each item, modal opens on button click, dropdown excludes logged-in user, submit prepends kudo to feed, modal closes on success |
+
+---
+
+## CI
+
+| Workflow | Trigger | Tests run | Artifact kept |
+|---|---|---|---|
+| `ci.yml` | Pull request → `main` | E2E only | 7 days |
+| `nightly.yml` | Daily 00:00 UTC + manual dispatch | Full suite | 30 days |
+
+Both call the shared `run-tests.yml` reusable workflow. Steps: install → Playwright browser → migrate + seed → start API → start frontend → wait-on ports → run tests → upload report.
+
+### Required secret
+
+| Secret | Purpose |
+|---|---|
+| `ACCESS_TOKEN_SECRET` | JWT signing key — must be a long random string |
 
 ---
 
 ## The app
 
-A minimal kudos board so engineers can publicly recognise each other's work.
+A minimal kudos board where engineers can recognise each other's work publicly.
 
-**Stack:** Node.js + Express + TypeScript, Prisma + SQLite, React 18 + Vite + Tailwind CSS, Zustand, Axios, JWT auth.
+**Backend:** Node.js + Express + TypeScript, Prisma ORM, SQLite, JWT auth, `class-validator` DTOs, `sanitize-html`
 
-**Endpoints:**
+**Frontend:** React 18, Vite, Tailwind CSS, Zustand, Axios, React Router
 
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/auth/sign-in` | — | Returns a JWT access token |
-| GET | `/auth/me` | Required | Returns `{ id, username }` for the token owner |
-| GET | `/auth/users` | Required | All users (for the receiver dropdown) |
-| GET | `/kudos` | Required | All kudos, newest first, with author and receiver |
-| POST | `/kudos` | Required | Create a kudo `{ message, receiverId }` |
-
-**Pages:** `/` (login) and `/kudos` (kudos wall with Give Kudos modal).
+**Seed users:** `alice`, `bob`, `carol`, `dave`, `eve` — password `Qk$Dev#Seed9!` for all
