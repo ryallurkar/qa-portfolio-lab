@@ -38,8 +38,9 @@ test.describe("Login page", () => {
       await loginPage.login("alice", "wrongpassword");
     });
 
-    await test.step("assert error is displayed", async () => {
+    await test.step("assert error is displayed and URL stays at /", async () => {
       await expect(loginPage.errorMessage).toBeVisible();
+      await expect(loginPage.errorMessage).toContainText("Invalid");
       await expect(page).toHaveURL("/");
     });
   });
