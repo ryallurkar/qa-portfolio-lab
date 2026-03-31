@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { API_BASE_URL, getAuthToken, authHeaders } from "../helpers/api";
 
-const SIGN_IN_URL = `${API_BASE_URL}/auth/sign-in`;
 const USERS_URL = `${API_BASE_URL}/auth/users`;
 const KUDOS_URL = `${API_BASE_URL}/kudos`;
 
@@ -31,13 +30,22 @@ test.describe("POST /kudos", () => {
       });
     });
 
-    await test.step("assert 200 and shape", async () => {
+    await test.step("assert 200 and top-level shape", async () => {
       expect(response.status()).toBe(200);
       const body = await response.json();
       expect(typeof body.id).toBe("number");
       expect(typeof body.message).toBe("string");
+      expect(typeof body.createdAt).toBe("string");
       expect(body).toHaveProperty("author");
       expect(body).toHaveProperty("receiver");
+    });
+
+    await test.step("assert author and receiver have id and username", async () => {
+      const body = await response.json();
+      expect(typeof body.author.id).toBe("number");
+      expect(typeof body.author.username).toBe("string");
+      expect(typeof body.receiver.id).toBe("number");
+      expect(typeof body.receiver.username).toBe("string");
     });
   });
 
@@ -101,10 +109,18 @@ test.describe("POST /kudos", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("message at exactly 3 chars returns 200 (boundary)", async ({ request }) => {
+  test("message at exactly 3 chars returns 200 (lower boundary)", async ({ request }) => {
     const response = await request.post(KUDOS_URL, {
       headers: authHeaders(token),
       data: { message: "abc", receiverId },
+    });
+    expect(response.status()).toBe(200);
+  });
+
+  test("message at exactly 500 chars returns 200 (upper boundary)", async ({ request }) => {
+    const response = await request.post(KUDOS_URL, {
+      headers: authHeaders(token),
+      data: { message: "a".repeat(500), receiverId },
     });
     expect(response.status()).toBe(200);
   });
@@ -201,15 +217,38 @@ test.describe("GET /kudos", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
-  test("each item has id, message, author, and receiver", async ({ request }) => {
+  test("each item has id, message, createdAt, author, and receiver", async ({ request }) => {
     const response = await request.get(KUDOS_URL, { headers: authHeaders(token) });
     const body = await response.json();
     expect(body.length).toBeGreaterThan(0);
     for (const kudo of body) {
-      expect(kudo).toHaveProperty("id");
-      expect(kudo).toHaveProperty("message");
-      expect(kudo).toHaveProperty("author");
-      expect(kudo).toHaveProperty("receiver");
+      expect(typeof kudo.id).toBe("number");
+      expect(typeof kudo.message).toBe("string");
+      expect(typeof kudo.createdAt).toBe("string");
+      expect(typeof kudo.author.id).toBe("number");
+      expect(typeof kudo.author.username).toBe("string");
+      expect(typeof kudo.receiver.id).toBe("number");
+      expect(typeof kudo.receiver.username).toBe("string");
+    }
+  });
+
+  test("author and receiver do not expose password field", async ({ request }) => {
+    const response = await request.get(KUDOS_URL, { headers: authHeaders(token) });
+    const body = await response.json();
+    for (const kudo of body) {
+      expect(kudo.author).not.toHaveProperty("password");
+      expect(kudo.receiver).not.toHaveProperty("password");
+    }
+  });
+
+  test("results are returned newest first", async ({ request }) => {
+    const response = await request.get(KUDOS_URL, { headers: authHeaders(token) });
+    const body: Array<{ createdAt: string }> = await response.json();
+    if (body.length < 2) return;
+    for (let i = 0; i < body.length - 1; i++) {
+      const current = new Date(body[i].createdAt).getTime();
+      const next = new Date(body[i + 1].createdAt).getTime();
+      expect(current).toBeGreaterThanOrEqual(next);
     }
   });
 });
