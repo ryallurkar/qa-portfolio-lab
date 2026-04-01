@@ -17,7 +17,7 @@ test.describe("Login page", () => {
     await expect(loginPage.submitBtn).toBeVisible();
   });
 
-  test("valid credentials redirect to /kudos", async ({ page }) => {
+  test("valid credentials redirect to /kudos", { tag: "@smoke" }, async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.goto();
 
