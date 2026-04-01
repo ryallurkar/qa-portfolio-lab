@@ -58,7 +58,7 @@ test.describe("Kudos wall", () => {
     expect(options.length).toBeGreaterThan(0);
   });
 
-  test("submitting valid kudos adds the kudo to the top of the wall", async () => {
+  test("submitting valid kudos adds the kudo to the top of the wall", { tag: "@smoke" }, async () => {
     // Wait for the feed to finish loading before snapshotting the count
     await wall.kudosItems.first().waitFor({ state: "visible" });
     const initialCount = await wall.kudosItems.count();
