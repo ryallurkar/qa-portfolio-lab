@@ -85,6 +85,25 @@ test.describe("GET /auth/me", () => {
     const response = await request.get(ME_URL);
     expect(response.status()).toBe(401);
   });
+
+  test("malformed token returns 401", async ({ request }) => {
+    const response = await request.get(ME_URL, {
+      headers: { Authorization: "Bearer not.a.real.token" },
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("expired token returns 401", async ({ request }) => {
+    // A real JWT signed with a different secret — structurally valid but unverifiable
+    const fakeToken =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" +
+      ".eyJpZCI6MSwidXNlcm5hbWUiOiJhbGljZSIsImlhdCI6MTYwMDAwMDAwMCwiZXhwIjoxNjAwMDAwMDAxfQ" +
+      ".invalidsignature";
+    const response = await request.get(ME_URL, {
+      headers: { Authorization: `Bearer ${fakeToken}` },
+    });
+    expect(response.status()).toBe(401);
+  });
 });
 
 test.describe("GET /auth/users", () => {

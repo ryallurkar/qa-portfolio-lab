@@ -91,4 +91,32 @@ test.describe("Kudos wall", () => {
       await expect(wall.modal).not.toBeVisible();
     });
   });
+
+  test("cancel button closes the modal without submitting", async ({ page }) => {
+    await wall.openModal();
+    await wall.messageInput.fill("This should not be submitted");
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(wall.modal).not.toBeVisible();
+  });
+
+  test("clicking the backdrop closes the modal", async ({ page }) => {
+    await wall.openModal();
+    // Click the backdrop (the fixed overlay behind the modal panel)
+    await page.mouse.click(10, 10);
+    await expect(wall.modal).not.toBeVisible();
+  });
+
+  test("sign out navigates back to login", async ({ page }) => {
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page).toHaveURL("/");
+  });
+});
+
+test.describe("Unauthenticated access", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("visiting /kudos without a session redirects to login", async ({ page }) => {
+    await page.goto("/kudos");
+    await expect(page).toHaveURL("/");
+  });
 });

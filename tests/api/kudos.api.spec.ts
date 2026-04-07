@@ -84,10 +84,26 @@ test.describe("POST /kudos", () => {
   });
 
   // Message validation
+  test("empty request body returns 400", async ({ request, authToken }) => {
+    const response = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: {},
+    });
+    expect(response.status()).toBe(400);
+  });
+
   test("missing message returns 400", async ({ request, authToken, bobId }) => {
     const response = await request.post(KUDOS_URL, {
       headers: authHeaders(authToken),
       data: { receiverId: bobId },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("whitespace-only message returns 400", async ({ request, authToken, bobId }) => {
+    const response = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: { message: "   ", receiverId: bobId },
     });
     expect(response.status()).toBe(400);
   });
