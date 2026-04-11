@@ -22,4 +22,5 @@ export const selectors = {
   kudosReceiverSelect: "kudos-receiver-select",
   kudosSubmitBtn: "kudos-submit-btn",
   kudosCreateError: "kudos-create-error",
+  deleteKudosBtn: "delete-kudos-btn",
 };

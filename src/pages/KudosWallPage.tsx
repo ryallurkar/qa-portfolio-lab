@@ -11,6 +11,7 @@ const KudosWallPage: React.FC = () => {
   const clearAuth = useAuthStore((s) => s.clearAuth);
   const kudos = useKudosStore((s) => s.kudos);
   const setKudos = useKudosStore((s) => s.setKudos);
+  const removeKudo = useKudosStore((s) => s.removeKudo);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -33,6 +34,11 @@ const KudosWallPage: React.FC = () => {
       })
       .finally(() => setLoading(false));
   }, [setKudos]);
+
+  const handleDelete = async (id: number) => {
+    await apiClient.delete(`/kudos/${id}`);
+    removeKudo(id);
+  };
 
   const handleSignOut = () => {
     clearAuth();
@@ -91,15 +97,27 @@ const KudosWallPage: React.FC = () => {
                 className="bg-white shadow-sm rounded-xl p-5"
               >
                 <p className="text-gray-800 mb-3">{kudo.message}</p>
-                <p className="text-sm text-gray-500">
-                  <span className="font-medium text-indigo-600">
-                    {kudo.author.username}
-                  </span>{" "}
-                  →{" "}
-                  <span className="font-medium text-indigo-600">
-                    {kudo.receiver.username}
-                  </span>
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-gray-500">
+                    <span className="font-medium text-indigo-600">
+                      {kudo.author.username}
+                    </span>{" "}
+                    →{" "}
+                    <span className="font-medium text-indigo-600">
+                      {kudo.receiver.username}
+                    </span>
+                  </p>
+                  {user?.id === kudo.authorId && (
+                    <button
+                      data-testid="delete-kudos-btn"
+                      onClick={() => handleDelete(kudo.id)}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                      aria-label="Delete kudo"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
               </li>
             ))}
           </ul>

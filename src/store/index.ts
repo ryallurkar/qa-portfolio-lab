@@ -58,10 +58,12 @@ interface KudosState {
   kudos: Kudo[];
   setKudos: (kudos: Kudo[]) => void;
   prependKudo: (kudo: Kudo) => void;
+  removeKudo: (id: number) => void;
 }
 
 export const useKudosStore = create<KudosState>((set) => ({
   kudos: [],
   setKudos: (kudos) => set({ kudos }),
   prependKudo: (kudo) => set((state) => ({ kudos: [kudo, ...state.kudos] })),
+  removeKudo: (id) => set((state) => ({ kudos: state.kudos.filter((k) => k.id !== id) })),
 }));
