@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run:*)",
+      "Bash(node -r esbuild-runner/register test-dto.ts)",
+      "Bash(npm list:*)",
+      "Bash(lsof -ti:3022,3000,3001)",
+      "Bash(xargs kill:*)",
+      "Bash(git checkout:*)",
+      "Read(//Users/raju.yallurkar/**)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(nvm use:*)",
+      "Bash(brew list:*)",
+      "Bash(lsof -ti:3022,3000)",
+      "Bash(npm test:*)",
+      "Bash(curl -s -o /dev/null -w \"API:%{http_code} UI:%{http_code}\\\\n\" http://localhost:3022/kudos http://localhost:3000)"
+    ]
+  }
+}
