@@ -2,10 +2,14 @@ import {
   JsonController,
   Get,
   Post,
+  Delete,
   Body,
   Req,
+  Res,
+  Param,
   UseBefore,
 } from "routing-controllers";
+import { Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
 import sanitizeHtml from "sanitize-html";
 import { CreateKudosDto } from "../dto/create-kudos.dto";
@@ -70,5 +74,35 @@ export class KudosController {
       }
       throw err;
     }
+  }
+
+  /**
+   * Deletes a kudo by id. Only the author may delete their own kudo.
+   * Returns 204 on success, 403 if the requester is not the author,
+   * 404 if the kudo does not exist.
+   */
+  @Delete("/:id")
+  @UseBefore(authMiddleware)
+  async remove(
+    @Param("id") id: number,
+    @Req() req: AuthenticatedRequest,
+    @Res() res: Response
+  ) {
+    const kudo = await prisma.kudos.findUnique({ where: { id } });
+
+    if (!kudo) {
+      const error = new Error("Kudo not found") as Error & { httpCode?: number };
+      error.httpCode = 404;
+      throw error;
+    }
+
+    if (kudo.authorId !== req.user!.id) {
+      const error = new Error("Forbidden") as Error & { httpCode?: number };
+      error.httpCode = 403;
+      throw error;
+    }
+
+    await prisma.kudos.delete({ where: { id } });
+    return res.status(204).send();
   }
 }
