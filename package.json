@@ -14,12 +14,15 @@
     "test": "playwright test",
     "test:api": "playwright test --project=api",
     "test:e2e": "playwright test --project=chromium",
-    "test:smoke": "playwright test --grep @smoke"
+    "test:smoke": "playwright test --grep @smoke",
+    "test:generated": "playwright test tests/generated",
+    "generate": "tsc -p scripts/tsconfig.json && node dist-scripts/generate.js"
   },
   "prisma": {
     "seed": "node prisma/run-seed.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
     "@prisma/client": "^5.10.0",
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
