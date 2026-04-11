@@ -104,11 +104,11 @@ Every run starts from a clean seeded state. `npm run db:seed` is called in `glob
 
 | Username | Password | Notes |
 |----------|----------|-------|
-| alice | Qk$Dev#Seed9! | Default authenticated user in all tests |
-| bob | Qk$Dev#Seed9! | Common receiver — use `bobId` fixture, never hardcode id |
-| carol | Qk$Dev#Seed9! | Available |
-| dave | Qk$Dev#Seed9! | Available |
-| eve | Qk$Dev#Seed9! | Available |
+| alice | !password123 | Default authenticated user in all tests |
+| bob | !password123 | Common receiver — use `bobId` fixture, never hardcode id |
+| carol | !password123 | Available |
+| dave | !password123 | Available |
+| eve | !password123 | Available |
 
 - Seed inserts **7 kudos** — tests asserting count must account for this baseline
 - `bobId` fixture resolves dynamically from `GET /auth/users` — never hardcode a DB id

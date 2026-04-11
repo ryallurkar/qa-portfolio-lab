@@ -15,7 +15,7 @@ async function globalSetup() {
   // the login flow itself.
   const context = await request.newContext();
   const response = await context.post("http://localhost:3022/auth/sign-in", {
-    data: { username: "alice", password: "Qk$Dev#Seed9!" },
+    data: { username: "alice", password: "!password123" },
   });
 
   if (!response.ok()) {

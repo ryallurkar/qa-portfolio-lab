@@ -336,7 +336,7 @@ test.describe("DELETE /kudos/:id", () => {
 
     await test.step("sign in as bob and attempt to delete alice's kudo", async () => {
       const signInRes = await request.post(SIGN_IN_URL, {
-        data: { username: "bob", password: "Qk$Dev#Seed9!" },
+        data: { username: "bob", password: "!password123" },
       });
       const { accessToken: bobToken } = await signInRes.json();
 

@@ -22,7 +22,7 @@ test.describe("Login page", () => {
     await loginPage.goto();
 
     await test.step("submit valid credentials", async () => {
-      await loginPage.login("alice", "Qk$Dev#Seed9!");
+      await loginPage.login("alice", "!password123");
     });
 
     await test.step("assert redirect to kudos wall", async () => {

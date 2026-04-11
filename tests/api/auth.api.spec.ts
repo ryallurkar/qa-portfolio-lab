@@ -13,7 +13,7 @@ test.describe("POST /auth/sign-in", () => {
 
       await test.step("send valid credentials", async () => {
         response = await request.post(SIGN_IN_URL, {
-          data: { username: "alice", password: "Qk$Dev#Seed9!" },
+          data: { username: "alice", password: "!password123" },
         });
       });
 
@@ -41,14 +41,14 @@ test.describe("POST /auth/sign-in", () => {
 
   test("unknown username returns 403", async ({ request }) => {
     const response = await request.post(SIGN_IN_URL, {
-      data: { username: "nobody", password: "Qk$Dev#Seed9!" },
+      data: { username: "nobody", password: "!password123" },
     });
     expect(response.status()).toBe(403);
   });
 
   test("missing username returns 400", async ({ request }) => {
     const response = await request.post(SIGN_IN_URL, {
-      data: { password: "Qk$Dev#Seed9!" },
+      data: { password: "!password123" },
     });
     expect(response.status()).toBe(400);
   });

@@ -44,7 +44,7 @@ test.describe("Delete kudos", () => {
       const alice = users.find((u) => u.username === "alice")!;
 
       const signInRes = await request.post(SIGN_IN_URL, {
-        data: { username: "bob", password: "Qk$Dev#Seed9!" },
+        data: { username: "bob", password: "!password123" },
       });
       const { accessToken: bobToken } = await signInRes.json();
 

@@ -121,4 +121,4 @@ A minimal kudos board where engineers can recognise each other's work publicly.
 
 **Features:** Give kudos (authenticated), delete your own kudos, public kudos wall sorted newest-first
 
-**Seed users:** `alice`, `bob`, `carol`, `dave`, `eve` — password `Qk$Dev#Seed9!` for all
+**Seed users:** `alice`, `bob`, `carol`, `dave`, `eve` — password `!password123` for all

@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 const prisma = new PrismaClient();
 
 async function main() {
-  const plainPassword = "Qk$Dev#Seed9!";
+  const plainPassword = "!password123";
   const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
   // Upsert all five seed users — safe to re-run before each test suite

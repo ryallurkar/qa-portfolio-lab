@@ -16,7 +16,7 @@ test.describe("Network failure handling", () => {
 
       const loginPage = new LoginPage(page);
       await loginPage.goto();
-      await loginPage.login("alice", "Qk$Dev#Seed9!");
+      await loginPage.login("alice", "!password123");
 
       await expect(loginPage.errorMessage).toBeVisible();
       await expect(page).toHaveURL("/");
@@ -27,7 +27,7 @@ test.describe("Network failure handling", () => {
 
       const loginPage = new LoginPage(page);
       await loginPage.goto();
-      await loginPage.login("alice", "Qk$Dev#Seed9!");
+      await loginPage.login("alice", "!password123");
 
       await expect(loginPage.errorMessage).toBeVisible();
       await expect(page).toHaveURL("/");
