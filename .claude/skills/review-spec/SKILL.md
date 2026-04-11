@@ -4,7 +4,9 @@ description: Reviews a Playwright spec file against this project's conventions �
 argument-hint: <spec file path>
 ---
 
-Read the file at `prompts/project-context.md` first. That is the source of truth for all conventions in this project.
+Read both files before reviewing:
+1. `prompts/project-context.md` — source of truth for this project's architecture, APIs, POMs, seed data, and selectors.
+2. `prompts/test-review.md` — the 10 review rules and the coverage checklist that define what "good" looks like.
 
 Then read the spec file at `$ARGUMENTS` (or if no file is specified, ask which file to review).
 

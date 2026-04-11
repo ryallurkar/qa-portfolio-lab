@@ -36,8 +36,14 @@ const KudosWallPage: React.FC = () => {
   }, [setKudos]);
 
   const handleDelete = async (id: number) => {
-    await apiClient.delete(`/kudos/${id}`);
-    removeKudo(id);
+    try {
+      await apiClient.delete(`/kudos/${id}`);
+      removeKudo(id);
+    } catch {
+      // Kudo may have already been deleted — remove it from the local store
+      // so the wall stays consistent with the server state
+      removeKudo(id);
+    }
   };
 
   const handleSignOut = () => {

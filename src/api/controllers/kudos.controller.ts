@@ -3,13 +3,12 @@ import {
   Get,
   Post,
   Delete,
+  HttpCode,
   Body,
   Req,
-  Res,
   Param,
   UseBefore,
 } from "routing-controllers";
-import { Response } from "express";
 import { PrismaClient, Prisma } from "@prisma/client";
 import sanitizeHtml from "sanitize-html";
 import { CreateKudosDto } from "../dto/create-kudos.dto";
@@ -83,12 +82,14 @@ export class KudosController {
    */
   @Delete("/:id")
   @UseBefore(authMiddleware)
+  @HttpCode(204)
   async remove(
     @Param("id") id: number,
     @Req() req: AuthenticatedRequest,
-    @Res() res: Response
   ) {
-    const kudo = await prisma.kudos.findUnique({ where: { id } });
+    const numericId = Number(id);
+
+    const kudo = await prisma.kudos.findUnique({ where: { id: numericId } });
 
     if (!kudo) {
       const error = new Error("Kudo not found") as Error & { httpCode?: number };
@@ -102,7 +103,6 @@ export class KudosController {
       throw error;
     }
 
-    await prisma.kudos.delete({ where: { id } });
-    return res.status(204).send();
+    await prisma.kudos.delete({ where: { id: numericId } });
   }
 }

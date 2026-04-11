@@ -1,6 +1,8 @@
 import { test, expect } from "../fixtures";
 import { API_BASE_URL, authHeaders } from "../helpers/api";
 
+const SIGN_IN_URL = `${API_BASE_URL}/auth/sign-in`;
+
 const KUDOS_URL = `${API_BASE_URL}/kudos`;
 
 test.describe("POST /kudos", () => {
@@ -256,5 +258,120 @@ test.describe("GET /kudos", () => {
       const next = new Date(body[i + 1].createdAt).getTime();
       expect(current).toBeGreaterThanOrEqual(next);
     }
+  });
+});
+
+test.describe("DELETE /kudos/:id", () => {
+  test(
+    "owner deletes their own kudo — returns 204 with empty body and kudo is gone from feed",
+    { tag: "@smoke" },
+    async ({ request, authToken, bobId }) => {
+      let kudoId: number;
+
+      await test.step("create a kudo to delete", async () => {
+        const res = await request.post(KUDOS_URL, {
+          headers: authHeaders(authToken),
+          data: { message: "This kudo will be deleted", receiverId: bobId },
+        });
+        const body = await res.json();
+        kudoId = body.id;
+      });
+
+      await test.step("delete the kudo and assert 204 with empty body", async () => {
+        const res = await request.delete(`${KUDOS_URL}/${kudoId}`, {
+          headers: authHeaders(authToken),
+        });
+        expect(res.status()).toBe(204);
+        const text = await res.text();
+        expect(text).toBe("");
+      });
+
+      await test.step("verify kudo no longer appears in GET /kudos", async () => {
+        const res = await request.get(KUDOS_URL);
+        const body: Array<{ id: number }> = await res.json();
+        expect(body.find((k) => k.id === kudoId)).toBeUndefined();
+      });
+    }
+  );
+
+  test("no token returns 401", async ({ request, authToken, bobId }) => {
+    const createRes = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: { message: "Auth guard test kudo", receiverId: bobId },
+    });
+    const { id } = await createRes.json();
+
+    const res = await request.delete(`${KUDOS_URL}/${id}`);
+    expect(res.status()).toBe(401);
+    const body = await res.json();
+    expect(body).toHaveProperty("message");
+  });
+
+  test("invalid token returns 401", async ({ request, authToken, bobId }) => {
+    const createRes = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: { message: "Invalid token test kudo", receiverId: bobId },
+    });
+    const { id } = await createRes.json();
+
+    const res = await request.delete(`${KUDOS_URL}/${id}`, {
+      headers: { Authorization: "Bearer thisisnotavalidtoken" },
+    });
+    expect(res.status()).toBe(401);
+    const body = await res.json();
+    expect(body).toHaveProperty("message");
+  });
+
+  test("non-owner deleting another user's kudo returns 403", async ({ request, authToken, bobId }) => {
+    let kudoId: number;
+
+    await test.step("create a kudo as alice", async () => {
+      const res = await request.post(KUDOS_URL, {
+        headers: authHeaders(authToken),
+        data: { message: "Alice owns this kudo", receiverId: bobId },
+      });
+      const body = await res.json();
+      kudoId = body.id;
+    });
+
+    await test.step("sign in as bob and attempt to delete alice's kudo", async () => {
+      const signInRes = await request.post(SIGN_IN_URL, {
+        data: { username: "bob", password: "!password123" },
+      });
+      const { accessToken: bobToken } = await signInRes.json();
+
+      const res = await request.delete(`${KUDOS_URL}/${kudoId}`, {
+        headers: authHeaders(bobToken),
+      });
+      expect(res.status()).toBe(403);
+      const body = await res.json();
+      expect(body).toHaveProperty("message");
+    });
+  });
+
+  test("non-existent id returns 404", async ({ request, authToken }) => {
+    const res = await request.delete(`${KUDOS_URL}/99999`, {
+      headers: authHeaders(authToken),
+    });
+    expect(res.status()).toBe(404);
+    const body = await res.json();
+    expect(body).toHaveProperty("message");
+  });
+
+  test("deleting an already-deleted kudo returns 404", async ({ request, authToken, bobId }) => {
+    const createRes = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: { message: "Delete me twice", receiverId: bobId },
+    });
+    const { id } = await createRes.json();
+
+    await request.delete(`${KUDOS_URL}/${id}`, { headers: authHeaders(authToken) });
+
+    const res = await request.delete(`${KUDOS_URL}/${id}`, {
+      headers: authHeaders(authToken),
+    });
+    expect(res.status()).toBe(404);
+    const body = await res.json();
+    expect(body).toHaveProperty("message");
   });
 });
