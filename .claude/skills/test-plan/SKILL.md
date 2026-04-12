@@ -4,11 +4,19 @@ description: Generates a complete test plan for a new feature before any code is
 argument-hint: <feature description>
 ---
 
-Read the file at `prompts/project-context.md` first. That is the source of truth for this project's conventions, existing page objects, API contracts, and seed data.
-
-The feature to plan is: $ARGUMENTS
+Read these files before generating the plan:
+1. `prompts/references/app-overview.md` — stack and tech
+2. `prompts/references/api-contracts.md` — existing endpoints and shapes
+3. `prompts/references/auth.md` — auth patterns
+4. `prompts/references/frontend-behaviour.md` — UI state and component behaviour
+5. `prompts/references/seed-data.md` — available users and baseline kudo count
+6. `prompts/references/project-structure.md` — where files go, Playwright projects
+7. `prompts/references/pom-reference.md` — existing POMs and locators
+8. `prompts/references/coverage-checklist.md` — coverage checklist
 
 Also read the existing specs in `tests/e2e/` and `tests/api/` to understand patterns already in use and avoid duplicating existing coverage.
+
+The feature to plan is: $ARGUMENTS
 
 Structure your output exactly as follows:
 
@@ -92,4 +100,4 @@ Total: X tests
 
 ---
 
-Be specific. Use actual field names, endpoints, validation rules, and seed users from the project context. No generic placeholders.
+Be specific. Use actual field names, endpoints, validation rules, and seed users from the references. No generic placeholders.

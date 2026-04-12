@@ -1,8 +1,13 @@
-Read the file at `prompts/project-context.md` first. That is the source of truth for all conventions in this project.
+Read these files before reviewing anything:
+1. `prompts/references/conventions.md` — waits, assertions, tagging, locator priority, POM rules
+2. `prompts/references/pom-reference.md` — existing POMs, selector rules, import patterns
+3. `prompts/references/auth.md` — auth patterns, unauthenticated test structure
+4. `prompts/references/api-contracts.md` — endpoint shapes and error codes
+5. `prompts/references/coverage-checklist.md` — coverage checklist
 
 Then read the spec file the user has specified (or if no file is specified, ask which file to review).
 
-Review the spec against every rule in the project context. Structure your output exactly as follows:
+Review the spec against every rule in the references. Structure your output exactly as follows:
 
 ---
 
@@ -27,6 +32,7 @@ Categories to check:
 - POM usage: locators must come from POMs or fixtures, never inlined in specs
 - Security: any test that returns user objects must assert `not.toHaveProperty('password')`
 - Tags: happy path tests should have `{ tag: '@smoke' }`
+- Parallelism: avoid `.first()` without reason in tests that could run alongside others — prefer `.filter({ hasText: '...' })`
 
 ### ⚠️ Suggestions (should consider)
 List improvements that aren't violations but would make the suite stronger:
@@ -37,7 +43,7 @@ List improvements that aren't violations but would make the suite stronger:
 - Steps that could be wrapped in `test.step()` for readability
 
 ### 📊 Coverage summary
-List the scenarios this spec covers and what it is still missing based on the coverage checklist in the project context (happy path, unauthenticated, validation, boundary values, security, UI state, data integrity).
+List the scenarios this spec covers and what it is still missing based on the coverage checklist (happy path, unauthenticated, validation, boundary values, security, UI state, data integrity).
 
 ---
 

@@ -4,10 +4,17 @@ description: Takes a feature description and generates everything needed to test
 argument-hint: <feature description>
 ---
 
-Read these three files before generating anything:
-1. `prompts/project-context.md` — app architecture, API contracts, POMs, seed data, selectors, coding conventions.
-2. `prompts/test-review.md` — the 10 rules and coverage checklist every spec must satisfy.
-3. All existing specs in `tests/e2e/` and `tests/api/` — to match patterns already in use and avoid duplicating coverage.
+Read these files before generating anything:
+1. `prompts/references/app-overview.md` — stack and tech
+2. `prompts/references/api-contracts.md` — existing endpoints and shapes
+3. `prompts/references/auth.md` — auth patterns and test structure
+4. `prompts/references/frontend-behaviour.md` — UI state and component behaviour
+5. `prompts/references/seed-data.md` — available users and baseline data
+6. `prompts/references/project-structure.md` — where files go, Playwright projects
+7. `prompts/references/pom-reference.md` — existing POMs, selector rules, import patterns
+8. `prompts/references/conventions.md` — waits, assertions, tagging, locator priority, POM rules
+9. `prompts/references/coverage-checklist.md` — coverage checklist and reusable patterns
+10. All existing specs in `tests/e2e/` and `tests/api/` — to match patterns and avoid duplicating coverage
 
 The feature to implement tests for is: $ARGUMENTS
 
@@ -46,9 +53,9 @@ Requirements:
 | Each required field missing → 400 | none |
 | Whitespace-only string fields → 400 | none |
 | Message too short (min-1 chars) → 400 | none |
-| Message at min valid length → 201/200 | none |
+| Message at min valid length → 200 | none |
 | Message too long (max+1 chars) → 400 | none |
-| Message at max valid length → 201/200 | none |
+| Message at max valid length → 200 | none |
 | Invalid receiverId types (float, string, 0, negative) → 400 | none |
 | Non-existent receiverId → 404 | none |
 | Author cannot be spoofed via body field → assert authorId equals token user | none |
@@ -74,6 +81,7 @@ Requirements:
 - Import `selectors` from `../helpers/selectors`
 - Never inline locators in the spec — all interactions go through POM methods
 - Never call `waitForTimeout()`
+- Prefer `.filter({ hasText: '...' })` over `.first()` when targeting a specific list item
 - Cover every row in this checklist:
 
 | Scenario | Tag |
@@ -143,7 +151,6 @@ import { selectors } from '../helpers/selectors';
 export class FeatureNamePage {
   readonly heading;
   readonly createBtn;
-  // ... other locators
 
   constructor(private page: Page) {
     this.heading = page.getByRole('heading', { name: 'Feature Name' });
@@ -173,8 +180,8 @@ If no new selectors are needed, state that explicitly.
 
 ## Step 6 — Self-review
 
-Before finishing, check every generated file against `prompts/test-review.md`.
-For each of the 10 rules, state: ✅ passes or ❌ fails (and fix it before outputting).
+Before finishing, check every generated file against `prompts/references/conventions.md` and `prompts/references/coverage-checklist.md`.
+For each convention category, state: ✅ passes or ❌ fails (and fix it before outputting).
 
 Do not output files that fail any rule.
 
