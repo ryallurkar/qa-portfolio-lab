@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Delete,
-  HttpCode,
+  OnUndefined,
   Body,
   Req,
   Param,
@@ -82,7 +82,7 @@ export class KudosController {
    */
   @Delete("/:id")
   @UseBefore(authMiddleware)
-  @HttpCode(204)
+  @OnUndefined(204)
   async remove(
     @Param("id") id: number,
     @Req() req: AuthenticatedRequest,
