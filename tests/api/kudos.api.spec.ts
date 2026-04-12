@@ -273,6 +273,7 @@ test.describe("DELETE /kudos/:id", () => {
           headers: authHeaders(authToken),
           data: { message: "This kudo will be deleted", receiverId: bobId },
         });
+        expect(res.status()).toBe(200);
         const body = await res.json();
         kudoId = body.id;
       });

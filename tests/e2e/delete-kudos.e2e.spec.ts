@@ -82,14 +82,15 @@ test.describe("Delete kudos", () => {
       let before: number;
 
       await test.step("snapshot count and click delete on alice's kudo", async () => {
-        await wall.kudosItems.first().waitFor({ state: "visible" });
+        const kudoToDelete = wall.kudosItems.filter({ hasText: "Kudo to be deleted from wall" });
+        await kudoToDelete.waitFor({ state: "visible" });
         before = await wall.kudosItems.count();
-        await wall.getDeleteBtnFor(wall.kudosItems.first()).click();
+        await wall.getDeleteBtnFor(kudoToDelete).click();
       });
 
       await test.step("assert count decremented and deleted card is gone", async () => {
         await expect(wall.kudosItems).toHaveCount(before - 1);
-        await expect(wall.kudosItems.first()).not.toContainText("Kudo to be deleted from wall");
+        await expect(wall.kudosItems.filter({ hasText: "Kudo to be deleted from wall" })).toHaveCount(0);
       });
     }
   );
