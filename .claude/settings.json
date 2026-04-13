@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath'); echo \"$f\" | grep -qE '\\.spec\\.ts$' || exit 0; violations=\"\"; if grep -n \"waitForTimeout\" \"$f\" 2>/dev/null | grep -qv \"//.*waitForTimeout\"; then lines=$(grep -n \"waitForTimeout\" \"$f\" | grep -v \"//.*waitForTimeout\" | awk -F: '{print $1}' | tr '\\n' ','); violations=\"${violations}\\n- waitForTimeout (banned) at line(s): ${lines%,}\"; fi; if grep -n \"getByTestId(['\\\"]\" \"$f\" 2>/dev/null | grep -q .; then lines=$(grep -n \"getByTestId(['\\\"]\" \"$f\" | awk -F: '{print $1}' | tr '\\n' ','); violations=\"${violations}\\n- Hardcoded testid string in getByTestId() — import from selectors instead, at line(s): ${lines%,}\"; fi; if grep -n \"\\.first()\" \"$f\" 2>/dev/null | grep -v \"//\" | grep -q .; then lines=$(grep -n \"\\.first()\" \"$f\" | grep -v \"//\" | awk -F: '{print $1}' | tr '\\n' ','); violations=\"${violations}\\n- .first() without explanatory comment — prefer .filter({ hasText: '...' }), at line(s): ${lines%,}\"; fi; if [ -n \"$violations\" ]; then msg=$(printf \"Spec quality violations in %s:%b\\n\\nFix these before finishing.\" \"$(basename \"$f\")\" \"$violations\"); jq -n --arg ctx \"$msg\" '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":$ctx}}'; fi; exit 0",
+            "timeout": 10,
+            "statusMessage": "Checking spec conventions..."
+          }
+        ]
+      }
+    ]
+  }
+}
