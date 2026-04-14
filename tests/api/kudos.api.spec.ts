@@ -83,6 +83,18 @@ test.describe("POST /kudos", () => {
       data: { message: "No auth", receiverId: bobId },
     });
     expect(response.status()).toBe(401);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
+  });
+
+  test("invalid token returns 401", async ({ request, bobId }) => {
+    const response = await request.post(KUDOS_URL, {
+      headers: { Authorization: "Bearer thisisnotavalidtoken" },
+      data: { message: "Bad token", receiverId: bobId },
+    });
+    expect(response.status()).toBe(401);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   // Message validation
@@ -92,6 +104,8 @@ test.describe("POST /kudos", () => {
       data: {},
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("missing message returns 400", async ({ request, authToken, bobId }) => {
@@ -100,6 +114,8 @@ test.describe("POST /kudos", () => {
       data: { receiverId: bobId },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("whitespace-only message returns 400", async ({ request, authToken, bobId }) => {
@@ -108,6 +124,8 @@ test.describe("POST /kudos", () => {
       data: { message: "   ", receiverId: bobId },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("message shorter than 3 chars returns 400", async ({ request, authToken, bobId }) => {
@@ -116,6 +134,8 @@ test.describe("POST /kudos", () => {
       data: { message: "ab", receiverId: bobId },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("message at exactly 3 chars returns 200 (lower boundary)", async ({ request, authToken, bobId }) => {
@@ -124,14 +144,21 @@ test.describe("POST /kudos", () => {
       data: { message: "abc", receiverId: bobId },
     });
     expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(typeof body.id).toBe("number");
+    expect(body.message).toBe("abc");
   });
 
   test("message at exactly 500 chars returns 200 (upper boundary)", async ({ request, authToken, bobId }) => {
+    const longMessage = "a".repeat(500);
     const response = await request.post(KUDOS_URL, {
       headers: authHeaders(authToken),
-      data: { message: "a".repeat(500), receiverId: bobId },
+      data: { message: longMessage, receiverId: bobId },
     });
     expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(typeof body.id).toBe("number");
+    expect(body.message).toBe(longMessage);
   });
 
   test("message longer than 500 chars returns 400", async ({ request, authToken, bobId }) => {
@@ -140,6 +167,8 @@ test.describe("POST /kudos", () => {
       data: { message: "a".repeat(501), receiverId: bobId },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   // receiverId validation
@@ -149,6 +178,8 @@ test.describe("POST /kudos", () => {
       data: { message: "No receiver" },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("string receiverId returns 400", async ({ request, authToken }) => {
@@ -157,6 +188,8 @@ test.describe("POST /kudos", () => {
       data: { message: "String receiver", receiverId: "bob" },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("receiverId of 0 returns 400", async ({ request, authToken }) => {
@@ -165,6 +198,8 @@ test.describe("POST /kudos", () => {
       data: { message: "Zero receiver", receiverId: 0 },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("negative receiverId returns 400", async ({ request, authToken }) => {
@@ -173,6 +208,8 @@ test.describe("POST /kudos", () => {
       data: { message: "Negative receiver", receiverId: -1 },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("float receiverId returns 400", async ({ request, authToken }) => {
@@ -181,6 +218,8 @@ test.describe("POST /kudos", () => {
       data: { message: "Float receiver", receiverId: 1.5 },
     });
     expect(response.status()).toBe(400);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   test("non-existent receiverId returns 404", async ({ request, authToken }) => {
@@ -189,6 +228,8 @@ test.describe("POST /kudos", () => {
       data: { message: "Ghost receiver", receiverId: 99999 },
     });
     expect(response.status()).toBe(404);
+    const body = await response.json();
+    expect(body).toHaveProperty("message");
   });
 
   // Sanitization
@@ -366,9 +407,28 @@ test.describe("DELETE /kudos/:id", () => {
     });
     const { id } = await createRes.json();
 
-    await request.delete(`${KUDOS_URL}/${id}`, { headers: authHeaders(authToken) });
+    const firstDelete = await request.delete(`${KUDOS_URL}/${id}`, { headers: authHeaders(authToken) });
+    expect(firstDelete.status()).toBe(204);
 
     const res = await request.delete(`${KUDOS_URL}/${id}`, {
+      headers: authHeaders(authToken),
+    });
+    expect(res.status()).toBe(404);
+    const body = await res.json();
+    expect(body).toHaveProperty("message");
+  });
+
+  test("id of 0 returns 404", async ({ request, authToken }) => {
+    const res = await request.delete(`${KUDOS_URL}/0`, {
+      headers: authHeaders(authToken),
+    });
+    expect(res.status()).toBe(404);
+    const body = await res.json();
+    expect(body).toHaveProperty("message");
+  });
+
+  test("negative id returns 404", async ({ request, authToken }) => {
+    const res = await request.delete(`${KUDOS_URL}/-1`, {
       headers: authHeaders(authToken),
     });
     expect(res.status()).toBe(404);

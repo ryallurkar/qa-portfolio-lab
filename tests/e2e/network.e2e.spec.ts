@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { LoginPage } from "../pages/LoginPage";
 import { KudosWallPage } from "../pages/KudosWallPage";
+import { getAuthToken, authHeaders } from "../helpers/api";
+import { selectors } from "../helpers/selectors";
 
 const API = "http://localhost:3022";
 
@@ -61,9 +63,43 @@ test.describe("Network failure handling", () => {
       await wall.receiverSelect.selectOption({ label: "bob" });
       await wall.submitBtn.click();
 
-      await expect(page.getByTestId("kudos-create-error")).toBeVisible();
+      await expect(page.getByTestId(selectors.kudosCreateError)).toBeVisible();
       // Modal should stay open so the user can retry
       await expect(wall.modal).toBeVisible();
+    });
+
+    test("kudos DELETE 500 — card remains on the wall", async ({ page, request }) => {
+      const token = await getAuthToken();
+      const usersRes = await request.get(`${API}/auth/users`, { headers: authHeaders(token) });
+      const users: Array<{ id: number; username: string }> = await usersRes.json();
+      const bob = users.find((u) => u.username === "bob")!;
+
+      await test.step("seed a known kudo via API", async () => {
+        await request.post(`${API}/kudos`, {
+          headers: authHeaders(token),
+          data: { message: "Kudo that should survive a 500 on delete", receiverId: bob.id },
+        });
+      });
+
+      const wall = new KudosWallPage(page);
+      await wall.goto();
+
+      await test.step("intercept DELETE and return 500, then click delete", async () => {
+        await page.route(`${API}/kudos/**`, (route) => {
+          if (route.request().method() === "DELETE") {
+            route.fulfill({ status: 500, body: JSON.stringify({ message: "Server error" }) });
+          } else {
+            route.continue();
+          }
+        });
+        const kudoToDelete = wall.kudosItems.filter({ hasText: "Kudo that should survive a 500 on delete" });
+        await kudoToDelete.waitFor({ state: "visible" });
+        await wall.getDeleteBtnFor(kudoToDelete).click();
+      });
+
+      await test.step("assert card is still on the wall after failed delete", async () => {
+        await expect(wall.kudosItems.filter({ hasText: "Kudo that should survive a 500 on delete" })).toBeVisible();
+      });
     });
   });
 });
