@@ -23,7 +23,7 @@ List anything that violates the project conventions. For each issue:
 - **Why:** explain why it's wrong (flakiness, wrong import, missing assertion, etc.)
 - **Fix:** show the corrected code snippet
 
-Categories to check:
+Categories to check (including new standards from `conventions.md`):
 - Imports: E2E must use `@playwright/test`, API tests must use `../fixtures`
 - Selectors: no hardcoded testid strings — must use `selectors.xxx`
 - Waits: any `waitForTimeout()` is a violation
@@ -32,9 +32,12 @@ Categories to check:
 - Response shape: API happy path must assert `authorId` and `receiverId` as top-level fields, and `author`/`receiver` not null
 - POM usage: locators must come from POMs or fixtures, never inlined in specs
 - Security: any test that returns user objects must assert `not.toHaveProperty('password')` — check for SQL injection test and encoding (emoji/non-ASCII) test
-- Tags: happy path tests should have `{ tag: '@smoke' }`
+- Tags: happy path tests should have `{ tag: '@smoke' }` — flaky tests must use `{ tag: '@flaky' }`, never be silently skipped
+- Test naming: each test name should follow one of the three patterns: "should [behaviour] when [condition]", "[action] [result]", or "given/when/then"
 - Parallelism: avoid `.first()` without reason in tests that could run alongside others — prefer `.filter({ hasText: '...' })`
 - Integration: check for cross-endpoint test (POST response fields match GET) and ordering test (two writes appear newest-first)
+- Factories: inline hardcoded message strings should use `uniqueMessage()` or `kudoPayload()` from `tests/helpers/factories.ts` — check for repeated literals like `"Great work"` that could cause test pollution
+- Coverage tiers: auth/ownership gaps are always blocking (critical tier) — flag if any 401/403 path is missing a body assertion
 
 ### ⚠️ Suggestions (should consider)
 List improvements that aren't violations but would make the suite stronger:

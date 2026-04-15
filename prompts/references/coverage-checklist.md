@@ -1,5 +1,18 @@
 # Coverage Checklist & Patterns
 
+## Coverage tiers by business risk
+
+Not all code requires the same coverage depth. Prioritise by risk:
+
+| Tier | Examples | Coverage target |
+|------|----------|----------------|
+| **Critical** | Auth flows, ownership checks, token validation | 95% — every error path tested |
+| **API contracts** | All endpoints, request/response shapes | 85% — all status codes + body shapes |
+| **UI flows** | E2E happy path, error states, empty states | Key journeys only |
+| **Utilities** | Helpers, formatters | Test where logic is non-trivial |
+
+Apply this when deciding which gaps to fill first — auth and ownership gaps are always blocking.
+
 ## Every new feature needs tests covering
 
 1. **Happy path** — authenticated user, valid data, assert UI + API response shape including `authorId`, `receiverId`, and null safety on nested objects
@@ -56,6 +69,20 @@ await expect(kudosWall.kudosItems).toHaveCount(before + 1);
 ```ts
 const item = wall.kudosItems.filter({ hasText: 'Known message' });
 await item.waitFor({ state: 'visible' });
+```
+
+**Use factories for payload construction (import from `tests/helpers/factories.ts`):**
+```ts
+import { kudoPayload, SEED_USERS } from "../helpers/factories";
+
+// generates unique message automatically
+data: kudoPayload(bobId)
+
+// override specific fields
+data: kudoPayload(bobId, { message: "Known text for assertion" })
+
+// sign in as a seed user without hardcoding credentials
+data: SEED_USERS.bob
 ```
 
 **SQL injection — assert stored as literal text:**

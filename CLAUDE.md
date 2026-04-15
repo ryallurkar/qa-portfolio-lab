@@ -38,6 +38,18 @@
 - Prefer `.filter({ hasText: '...' })` over `.first()` when targeting a specific item in a list
 - POM locators are `readonly` properties defined in the constructor only — no assertions inside POM methods
 - Modal and dialog locators must be scoped to the modal element
+- Use factories from `tests/helpers/factories.ts` for payload construction — never hardcode message strings inline
+
+### Test naming
+Pick one of three patterns and apply it consistently within a describe block:
+1. `"should [expected behaviour] when [condition]"` — e.g. `"should return 401 when token is missing"`
+2. `"[action] [expected result]"` — e.g. `"POST /kudos with no token returns 401"`
+3. `"given [context], when [action], then [result]"` — e.g. `"given alice is logged in, when she deletes her kudo, then it disappears from the wall"`
+
+### Tagging
+- `{ tag: '@smoke' }` — happy path + key API contract, run on every deploy
+- No tag — edge cases, boundary values, negative flows, regression
+- `{ tag: '@flaky' }` — tests known to be intermittent; must be investigated, never silently skipped. Run in a separate quarantine job to detect intermittency before it poisons the main suite
 
 ### Locator priority (E2E)
 1. `getByTestId(selectors.xxx)` — whenever a `data-testid` exists

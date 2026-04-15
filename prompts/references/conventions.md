@@ -6,10 +6,19 @@
 - Use `test.step()` for multi-action sequences — makes CI failure output readable
 - `beforeEach` only for navigation setup — keep it minimal, no assertions inside
 
+## Test naming
+
+Pick one pattern and apply it consistently within a describe block:
+
+1. `"should [expected behaviour] when [condition]"` — `"should return 401 when token is missing"`
+2. `"[action] [expected result]"` — `"POST /kudos with no token returns 401"`
+3. `"given [context], when [action], then [result]"` — `"given alice is logged in, when she deletes her kudo, then it disappears from the wall"`
+
 ## Tagging
 
 - `{ tag: '@smoke' }` — happy path + key API contract per feature, run on every deploy
 - No tag — edge cases, boundary values, negative flows, regression
+- `{ tag: '@flaky' }` — known intermittent tests; always investigate root cause, never silently skip. Run in a dedicated quarantine job.
 
 ## Assertions
 

@@ -41,8 +41,11 @@ Create `tests/api/<resource>.api.spec.ts`.
 Requirements:
 - Import `test`, `expect` from `../fixtures`
 - Import `API_BASE_URL`, `authHeaders`, `getAuthToken` from `../helpers/api`
+- Import `kudoPayload`, `SEED_USERS`, `uniqueMessage` from `../helpers/factories` as needed
 - One `test.describe` block for the feature
 - Use `bobId` fixture (never hardcode a DB id)
+- Use `kudoPayload(bobId)` for POST /kudos request bodies — never hardcode message strings inline
+- Use `SEED_USERS.bob` when signing in as bob — never hardcode credentials inline
 - Cover every row in this checklist:
 
 | Scenario | Tag |
