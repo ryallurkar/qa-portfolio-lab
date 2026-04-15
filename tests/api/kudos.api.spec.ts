@@ -24,8 +24,13 @@ test.describe("POST /kudos", () => {
         expect(typeof body.id).toBe("number");
         expect(typeof body.message).toBe("string");
         expect(typeof body.createdAt).toBe("string");
+        expect(typeof body.authorId).toBe("number");
+        expect(typeof body.receiverId).toBe("number");
+        expect(body.receiverId).toBe(bobId);
         expect(body).toHaveProperty("author");
+        expect(body.author).not.toBeNull();
         expect(body).toHaveProperty("receiver");
+        expect(body.receiver).not.toBeNull();
       });
 
       await test.step("assert author and receiver have id and username", async () => {
@@ -232,6 +237,39 @@ test.describe("POST /kudos", () => {
     expect(body).toHaveProperty("message");
   });
 
+  // Security — injection
+  test("SQL injection in message is stored as literal text, not executed", async ({ request, authToken, bobId }) => {
+    const sqlPayload = "'; DROP TABLE kudos; --";
+    const response = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: { message: sqlPayload, receiverId: bobId },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.message).toBe(sqlPayload);
+  });
+
+  // Encoding
+  test("emoji in message is stored and returned correctly", async ({ request, authToken, bobId }) => {
+    const response = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: { message: "Great work 🎉🙌", receiverId: bobId },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.message).toBe("Great work 🎉🙌");
+  });
+
+  test("accented and non-ASCII characters in message are preserved", async ({ request, authToken, bobId }) => {
+    const response = await request.post(KUDOS_URL, {
+      headers: authHeaders(authToken),
+      data: { message: "Héllo wörld — ñoño", receiverId: bobId },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body.message).toBe("Héllo wörld — ñoño");
+  });
+
   // Sanitization
   test("script tag in message is stripped, surrounding text preserved",
     async ({ request, authToken, bobId }) => {
@@ -274,10 +312,14 @@ test.describe("GET /kudos", () => {
       expect(typeof kudo.id).toBe("number");
       expect(typeof kudo.message).toBe("string");
       expect(typeof kudo.createdAt).toBe("string");
+      expect(typeof kudo.authorId).toBe("number");
+      expect(typeof kudo.receiverId).toBe("number");
       expect(typeof kudo.author.id).toBe("number");
       expect(typeof kudo.author.username).toBe("string");
+      expect(kudo.author).not.toBeNull();
       expect(typeof kudo.receiver.id).toBe("number");
       expect(typeof kudo.receiver.username).toBe("string");
+      expect(kudo.receiver).not.toBeNull();
     }
   });
 
@@ -434,5 +476,64 @@ test.describe("DELETE /kudos/:id", () => {
     expect(res.status()).toBe(404);
     const body = await res.json();
     expect(body).toHaveProperty("message");
+  });
+});
+
+test.describe("Cross-endpoint integration", () => {
+  test("POST response fields match the same kudo returned by GET /kudos", async ({ request, authToken, bobId }) => {
+    let postBody: Record<string, unknown>;
+
+    await test.step("create a kudo via POST", async () => {
+      const res = await request.post(KUDOS_URL, {
+        headers: authHeaders(authToken),
+        data: { message: "Integration shape check", receiverId: bobId },
+      });
+      expect(res.status()).toBe(200);
+      postBody = await res.json();
+    });
+
+    await test.step("find same kudo in GET /kudos and compare fields", async () => {
+      const res = await request.get(KUDOS_URL);
+      const feed: Array<Record<string, unknown>> = await res.json();
+      const fromFeed = feed.find((k) => k.id === postBody.id);
+      expect(fromFeed).toBeDefined();
+      expect(fromFeed!.message).toBe(postBody.message);
+      expect(fromFeed!.authorId).toBe(postBody.authorId);
+      expect(fromFeed!.receiverId).toBe(postBody.receiverId);
+      expect(fromFeed!.createdAt).toBe(postBody.createdAt);
+    });
+  });
+
+  test("two sequential POSTs appear newest-first in GET /kudos", async ({ request, authToken, bobId }) => {
+    let firstId: number;
+    let secondId: number;
+
+    await test.step("post first kudo", async () => {
+      const res = await request.post(KUDOS_URL, {
+        headers: authHeaders(authToken),
+        data: { message: "First kudo in ordering test", receiverId: bobId },
+      });
+      expect(res.status()).toBe(200);
+      firstId = (await res.json()).id;
+    });
+
+    await test.step("post second kudo", async () => {
+      const res = await request.post(KUDOS_URL, {
+        headers: authHeaders(authToken),
+        data: { message: "Second kudo in ordering test", receiverId: bobId },
+      });
+      expect(res.status()).toBe(200);
+      secondId = (await res.json()).id;
+    });
+
+    await test.step("assert second kudo appears before first in GET /kudos", async () => {
+      const res = await request.get(KUDOS_URL);
+      const feed: Array<{ id: number }> = await res.json();
+      const firstIdx = feed.findIndex((k) => k.id === firstId);
+      const secondIdx = feed.findIndex((k) => k.id === secondId);
+      expect(firstIdx).toBeGreaterThan(-1);
+      expect(secondIdx).toBeGreaterThan(-1);
+      expect(secondIdx).toBeLessThan(firstIdx);
+    });
   });
 });
