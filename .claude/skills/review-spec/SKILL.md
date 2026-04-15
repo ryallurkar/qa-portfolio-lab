@@ -28,11 +28,13 @@ Categories to check:
 - Selectors: no hardcoded testid strings — must use `selectors.xxx`
 - Waits: any `waitForTimeout()` is a violation
 - Auth: E2E tests that test auth-gated pages must use `test.use({ storageState: ... })` override if unauthenticated, or rely on injected state if authenticated — never sign in manually inside the test unless testing the login flow
-- Assertions: every test must assert behaviour not just HTTP status — check for missing body assertions in API tests, missing URL or visible state assertions in E2E tests
+- Assertions: every test must assert behaviour not just HTTP status — 400/401/403/404 tests must assert `body.toHaveProperty("message")`, 200 boundary tests must assert body shape not just status
+- Response shape: API happy path must assert `authorId` and `receiverId` as top-level fields, and `author`/`receiver` not null
 - POM usage: locators must come from POMs or fixtures, never inlined in specs
-- Security: any test that returns user objects must assert `not.toHaveProperty('password')`
+- Security: any test that returns user objects must assert `not.toHaveProperty('password')` — check for SQL injection test and encoding (emoji/non-ASCII) test
 - Tags: happy path tests should have `{ tag: '@smoke' }`
 - Parallelism: avoid `.first()` without reason in tests that could run alongside others — prefer `.filter({ hasText: '...' })`
+- Integration: check for cross-endpoint test (POST response fields match GET) and ordering test (two writes appear newest-first)
 
 ### ⚠️ Suggestions (should consider)
 List improvements that aren't violations but would make the suite stronger:

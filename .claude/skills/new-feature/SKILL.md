@@ -47,19 +47,23 @@ Requirements:
 
 | Scenario | Tag |
 |----------|-----|
-| Happy path — valid request, assert status + full response shape | `@smoke` |
-| No token → 401 | none |
-| Invalid token → 401 | none |
-| Each required field missing → 400 | none |
-| Whitespace-only string fields → 400 | none |
-| Message too short (min-1 chars) → 400 | none |
-| Message at min valid length → 200 | none |
-| Message too long (max+1 chars) → 400 | none |
-| Message at max valid length → 200 | none |
-| Invalid receiverId types (float, string, 0, negative) → 400 | none |
-| Non-existent receiverId → 404 | none |
+| Happy path — valid request, assert status + full response shape including `authorId`, `receiverId`, null safety on `author`/`receiver` | `@smoke` |
+| No token → 401 + `body.toHaveProperty("message")` | none |
+| Invalid token → 401 + `body.toHaveProperty("message")` | none |
+| Each required field missing → 400 + `body.toHaveProperty("message")` | none |
+| Whitespace-only string fields → 400 + `body.toHaveProperty("message")` | none |
+| Message too short (min-1 chars) → 400 + `body.toHaveProperty("message")` | none |
+| Message at min valid length → 200 + assert body shape | none |
+| Message too long (max+1 chars) → 400 + `body.toHaveProperty("message")` | none |
+| Message at max valid length → 200 + assert body shape | none |
+| Invalid receiverId types (float, string, 0, negative) → 400 + `body.toHaveProperty("message")` | none |
+| Non-existent receiverId → 404 + `body.toHaveProperty("message")` | none |
 | Author cannot be spoofed via body field → assert authorId equals token user | none |
 | No `password` field on any user object in response | none |
+| SQL injection in string fields — stored as literal text, not executed | none |
+| Emoji and non-ASCII characters in string fields — preserved round-trip | none |
+| POST response fields match GET response for the same resource | none |
+| Two sequential POSTs appear newest-first in GET feed | none |
 
 Security assertion pattern for collections:
 ```ts
@@ -67,6 +71,14 @@ for (const item of body) {
   expect(item.author).not.toHaveProperty('password');
   expect(item.receiver).not.toHaveProperty('password');
 }
+```
+
+Response shape assertion pattern (include in happy path step):
+```ts
+expect(typeof body.authorId).toBe("number");
+expect(typeof body.receiverId).toBe("number");
+expect(body.author).not.toBeNull();
+expect(body.receiver).not.toBeNull();
 ```
 
 ---
