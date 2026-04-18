@@ -1,20 +1,16 @@
 name: Update Visual Snapshots
 
-# Two triggers:
+# Manual trigger — run this when a UI change is intentional and you need
+# to regenerate the Linux baseline images on a branch.
 #
-#   1. Comment `/update-snapshots` on any PR — the bot will generate Linux baselines
-#      for that branch and commit them back. Use this when a UI change is intentional.
-#
-#   2. workflow_dispatch (Actions tab) — same thing but with a manual branch input.
-#      Useful for updating main baselines outside of a PR.
+# The visual regression job posts a direct link to this page when it fails,
+# so you never need to navigate here manually.
 
 on:
-  issue_comment:
-    types: [created]
   workflow_dispatch:
     inputs:
       branch:
-        description: "Branch to update snapshots on"
+        description: "Branch to update snapshots on (your PR branch)"
         required: true
         default: main
 
@@ -24,52 +20,16 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-
-    # For comment trigger: only run on PR comments that contain /update-snapshots
-    if: |
-      (github.event_name == 'workflow_dispatch') ||
-      (github.event_name == 'issue_comment' &&
-       github.event.issue.pull_request != null &&
-       contains(github.event.comment.body, '/update-snapshots'))
 
     env:
       ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
       VITE_API_BASE_URL: http://localhost:3022
 
     steps:
-      - name: Resolve target branch
-        id: resolve
-        uses: actions/github-script@v7
-        with:
-          script: |
-            if (context.eventName === 'workflow_dispatch') {
-              return core.setOutput('branch', context.payload.inputs.branch);
-            }
-            // issue_comment — fetch the PR to get the head branch
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-            });
-            core.setOutput('branch', pr.data.head.ref);
-
-      - name: React to comment with 👀
-        if: github.event_name == 'issue_comment'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.reactions.createForIssueComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: context.payload.comment.id,
-              content: 'eyes',
-            });
-
       - name: Checkout branch
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.resolve.outputs.branch }}
+          ref: ${{ inputs.branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Node.js 20
@@ -112,16 +72,4 @@ jobs:
           git diff --staged --quiet \
             && echo "Baselines unchanged — nothing to commit." \
             || (git commit -m "chore: update visual regression baselines [skip ci]" \
-                && git push origin ${{ steps.resolve.outputs.branch }})
-
-      - name: Post completion comment on PR
-        if: github.event_name == 'issue_comment'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: '✅ Visual snapshots updated. Re-run the **PR Check** to confirm the visual regression job passes.',
-            });
+                && git push origin ${{ inputs.branch }})
