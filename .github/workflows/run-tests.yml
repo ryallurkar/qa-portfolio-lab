@@ -64,6 +64,19 @@ jobs:
       - name: Run tests
         run: ${{ inputs.test-command }}
 
+      # AUTO-COMMIT: generate any missing Linux baselines and commit them back.
+      # No human gate — missing baselines are committed silently on first run.
+      - name: Auto-commit missing visual baselines
+        run: |
+          npx playwright test --project=visual --update-snapshots missing 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/e2e/visual-regression.visual.spec.ts-snapshots/
+          git diff --staged --quiet \
+            && echo "No new baselines" \
+            || (git commit -m "chore: add missing visual regression baselines [skip ci]" \
+                && git push origin HEAD)
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: always()

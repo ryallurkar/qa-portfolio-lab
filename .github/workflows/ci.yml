@@ -1,5 +1,16 @@
 name: PR Check
 
+# APPROACH 1 — Auto-commit
+#
+# Visual tests run as part of the normal E2E job via run-tests.yml.
+# If a Linux baseline is missing it is generated and committed automatically.
+# No human approval — any UI change silently becomes the new baseline.
+#
+# Tradeoff:
+#   ✅ Zero friction — nothing for the author to do
+#   ❌ Regressions can slip through undetected (baseline updates without review)
+#   ❌ Noisy commit history from bot baseline commits
+
 on:
   pull_request:
     branches:
@@ -7,83 +18,12 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
-  e2e:
-    name: E2E + API tests
+  test:
+    name: E2E + Visual + API tests
     uses: ./.github/workflows/run-tests.yml
     with:
-      test-command: npm run test:e2e
+      test-command: npm test
       artifact-name: test-report
     secrets: inherit
-
-  visual:
-    name: Visual regression
-    uses: ./.github/workflows/visual-regression.yml
-    with:
-      artifact-name: visual-diff-report
-    secrets: inherit
-
-  update-snapshots:
-    name: Update Snapshots
-    needs: visual
-    # Only appears in the pipeline when visual regression fails.
-    # The 'update-snapshots' environment requires manual approval —
-    # click "Review deployments" → Approve to run this job.
-    if: always() && needs.visual.result == 'failure'
-    runs-on: ubuntu-latest
-    environment: update-snapshots
-
-    env:
-      ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
-      VITE_API_BASE_URL: http://localhost:3022
-
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-        env:
-          NODE_ENV: development
-
-      - name: Install Playwright Chromium browser
-        run: npx playwright install chromium --with-deps
-
-      - name: Apply database migrations and seed
-        run: npm run db:deploy && npm run db:seed
-
-      - name: Start API server in background
-        run: npm run start:service &
-
-      - name: Start frontend in background
-        run: npm run dev:client &
-
-      - name: Wait for API to be ready
-        run: npx wait-on tcp:localhost:3022 --timeout 30000
-
-      - name: Wait for frontend to be ready
-        run: npx wait-on tcp:localhost:3000 --timeout 30000
-
-      - name: Generate Linux baselines
-        run: npx playwright test --project=visual --update-snapshots all
-
-      - name: Commit and push updated baselines
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add tests/e2e/visual-regression.visual.spec.ts-snapshots/
-          git diff --staged --quiet \
-            && echo "Baselines unchanged — nothing to commit." \
-            || (git commit -m "chore: update visual regression baselines [skip ci]" \
-                && git push origin ${{ github.head_ref }})
