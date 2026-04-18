@@ -1,10 +1,10 @@
 name: Update Visual Snapshots
 
-# Manual trigger — run this when a UI change is intentional and you need
-# to regenerate the Linux baseline images on a branch.
+# APPROACH 2 — Manual workflow_dispatch
 #
-# The visual regression job posts a direct link to this page when it fails,
-# so you never need to navigate here manually.
+# Triggered manually from the Actions tab. The failure comment in the PR
+# includes a direct link so the author lands on this page with one click.
+# They still need to enter their branch name and click Run workflow.
 
 on:
   workflow_dispatch:
@@ -26,40 +26,26 @@ jobs:
       VITE_API_BASE_URL: http://localhost:3022
 
     steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.branch }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
         env:
           NODE_ENV: development
 
-      - name: Install Playwright Chromium browser
-        run: npx playwright install chromium --with-deps
-
-      - name: Apply database migrations and seed
-        run: npm run db:deploy && npm run db:seed
-
-      - name: Start API server in background
-        run: npm run start:service &
-
-      - name: Start frontend in background
-        run: npm run dev:client &
-
-      - name: Wait for API to be ready
-        run: npx wait-on tcp:localhost:3022 --timeout 30000
-
-      - name: Wait for frontend to be ready
-        run: npx wait-on tcp:localhost:3000 --timeout 30000
+      - run: npx playwright install chromium --with-deps
+      - run: npm run db:deploy && npm run db:seed
+      - run: npm run start:service &
+      - run: npm run dev:client &
+      - run: npx wait-on tcp:localhost:3022 --timeout 30000
+      - run: npx wait-on tcp:localhost:3000 --timeout 30000
 
       - name: Generate Linux baselines
         run: npx playwright test --project=visual --update-snapshots all
@@ -70,6 +56,6 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add tests/e2e/visual-regression.visual.spec.ts-snapshots/
           git diff --staged --quiet \
-            && echo "Baselines unchanged — nothing to commit." \
+            && echo "Baselines unchanged." \
             || (git commit -m "chore: update visual regression baselines [skip ci]" \
                 && git push origin ${{ inputs.branch }})
