@@ -1,0 +1,103 @@
+name: Visual Regression
+
+# Runs as a separate job on every PR so visual failures are clearly isolated
+# from functional test failures.
+#
+# Failure modes and what they mean for the PR author:
+#
+#   "snapshot doesn't exist"  — no Linux baseline committed for this file.
+#                               Trigger the "Update Visual Snapshots" workflow
+#                               on this branch to generate and commit one.
+#
+#   "screenshot comparison"   — UI has changed vs the committed baseline.
+#                               If intentional: trigger "Update Visual Snapshots".
+#                               If unintentional: fix the regression.
+#
+# The HTML report (with side-by-side diffs) is uploaded as an artifact every
+# run so the author can see exactly what changed.
+
+on:
+  workflow_call:
+    inputs:
+      artifact-name:
+        description: "Name for the uploaded Playwright diff report artifact"
+        type: string
+        required: true
+
+jobs:
+  visual:
+    name: Visual regression
+    runs-on: ubuntu-latest
+
+    env:
+      ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
+      VITE_API_BASE_URL: http://localhost:3022
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_ENV: development
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Apply database migrations and seed
+        run: npm run db:deploy && npm run db:seed
+
+      - name: Start API server in background
+        run: npm run start:service &
+
+      - name: Start frontend in background
+        run: npm run dev:client &
+
+      - name: Wait for API to be ready
+        run: npx wait-on tcp:localhost:3022 --timeout 30000
+
+      - name: Wait for frontend to be ready
+        run: npx wait-on tcp:localhost:3000 --timeout 30000
+
+      - name: Run visual regression tests
+        id: visual
+        run: npx playwright test tests/e2e/visual-regression.e2e.spec.ts --project=chromium
+        continue-on-error: true
+
+      - name: Surface actionable guidance on failure
+        if: steps.visual.outcome == 'failure'
+        run: |
+          echo ""
+          echo "──────────────────────────────────────────────────────────────"
+          echo "  Visual regression tests failed."
+          echo ""
+          echo "  Possible causes:"
+          echo "  1. No Linux baseline committed yet (first run on this branch)."
+          echo "  2. The UI has changed vs the committed baseline."
+          echo ""
+          echo "  What to do:"
+          echo "  → Go to Actions → 'Update Visual Snapshots' → Run workflow"
+          echo "  → Set 'branch' to: ${{ github.head_ref }}"
+          echo "  → That will generate and commit Linux baselines to your branch."
+          echo "  → Re-run this CI check once it completes."
+          echo ""
+          echo "  Download the artifact '${ARTIFACT_NAME}' to see side-by-side diffs."
+          echo "──────────────────────────────────────────────────────────────"
+          exit 1
+        env:
+          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+
+      - name: Upload visual diff report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ${{ inputs.artifact-name }}
+          path: playwright-report/
+          retention-days: 7

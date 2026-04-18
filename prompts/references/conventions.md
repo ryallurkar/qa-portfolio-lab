@@ -43,6 +43,24 @@ Pick one pattern and apply it consistently within a describe block:
 4. CSS selectors, XPath, positional `.nth()` without reason — **never**
 5. `.first()` without a reason — **avoid**; prefer `.filter({ hasText: '...' })` for specificity
 
+## Visual regression
+
+- **Never screenshot a live data feed** — the feed changes when new data is added and will break the test
+- Screenshot stable UI chrome only: nav headers, empty forms, modal shells, static cards
+- Prefer element-level screenshots: `await expect(locator).toHaveScreenshot("name.png", options)`
+- Mask dynamic content when a full-page shot is unavoidable: `mask: [wall.kudosItems]`
+- Standard tolerance options (absorbs OS font-rendering differences between macOS and Linux CI):
+  ```ts
+  const SCREENSHOT_OPTIONS = {
+    threshold: 0.2,           // per-pixel colour delta tolerance
+    maxDiffPixelRatio: 0.05,  // max 5% of pixels can differ
+    animations: "disabled",   // freeze CSS transitions mid-frame
+  };
+  ```
+- Baselines are OS-specific: `-darwin.png` locally, `-linux.png` in CI. Both are committed to the repo.
+- To generate Linux baselines locally (matching CI): `npm run test:visual:linux:update`
+- To regenerate baselines after an intentional UI change in a PR: trigger the **"Update Visual Snapshots"** GitHub Actions workflow
+
 ## POM rules
 
 - Locators are `readonly` properties defined in constructor only

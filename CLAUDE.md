@@ -62,6 +62,25 @@ Pick one of three patterns and apply it consistently within a describe block:
 - Validate request bodies with `class-validator` DTOs
 - Auth middleware (`authMiddleware`) must protect every route that requires authentication
 
+### Visual regression
+
+Baselines are stored per-OS by Playwright (`-darwin.png` locally, `-linux.png` in CI). The CI environment is the source of truth — always use the Linux baselines on `main`.
+
+**Rules:**
+- Never screenshot a live data feed — screenshot stable UI chrome only (header, modal, login card)
+- Mask dynamic content (`mask: [locator]`) when a full-page shot is needed
+- Prefer element-level screenshots (`expect(locator).toHaveScreenshot()`) over full-page shots
+- Use `threshold: 0.2` and `maxDiffPixelRatio: 0.05` to absorb OS font-rendering differences
+
+**Workflow:**
+- `npm run test:visual` — run visual regression locally (generates macOS baselines)
+- `npm run test:visual:linux` — run in Docker (generates Linux baselines matching CI exactly)
+- `npm run test:visual:linux:update` — regenerate Linux baselines locally via Docker
+
+**When to regenerate baselines:**
+- Intentional UI change → trigger the **"Update Visual Snapshots"** GitHub Actions workflow on your PR branch
+- It generates and commits new Linux PNGs; re-run the PR check to confirm
+
 ### Commits
 - Single-line commit messages only
 - No `Co-Authored-By: Claude` or any AI attribution in commit messages

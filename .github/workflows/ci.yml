@@ -7,9 +7,16 @@ on:
 
 jobs:
   e2e:
-    name: E2E tests
+    name: E2E + API tests
     uses: ./.github/workflows/run-tests.yml
     with:
       test-command: npm run test:e2e
       artifact-name: test-report
+    secrets: inherit
+
+  visual:
+    name: Visual regression
+    uses: ./.github/workflows/visual-regression.yml
+    with:
+      artifact-name: visual-diff-report
     secrets: inherit

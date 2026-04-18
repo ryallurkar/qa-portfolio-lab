@@ -1,0 +1,81 @@
+name: Update Visual Snapshots
+
+# Manual trigger only — run this when a UI change is intentional and you need
+# to regenerate the Linux baseline images on your branch.
+#
+# Steps:
+#   1. Go to Actions → "Update Visual Snapshots" → Run workflow
+#   2. Set the branch input to your PR branch name
+#   3. Wait for it to complete — it will commit updated PNGs back to your branch
+#   4. Re-run the "PR Check" workflow on your PR to confirm it passes
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: "Branch to update snapshots on (your PR branch)"
+        required: true
+        default: main
+
+jobs:
+  update:
+    name: Regenerate Linux baselines
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
+      VITE_API_BASE_URL: http://localhost:3022
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          # Use a token with write access so the push at the end succeeds
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_ENV: development
+
+      - name: Install Playwright Chromium browser
+        run: npx playwright install chromium --with-deps
+
+      - name: Apply database migrations and seed
+        run: npm run db:deploy && npm run db:seed
+
+      - name: Start API server in background
+        run: npm run start:service &
+
+      - name: Start frontend in background
+        run: npm run dev:client &
+
+      - name: Wait for API to be ready
+        run: npx wait-on tcp:localhost:3022 --timeout 30000
+
+      - name: Wait for frontend to be ready
+        run: npx wait-on tcp:localhost:3000 --timeout 30000
+
+      - name: Generate Linux baselines
+        run: |
+          npx playwright test tests/e2e/visual-regression.e2e.spec.ts \
+            --project=chromium --update-snapshots all
+
+      - name: Commit and push updated baselines
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tests/e2e/visual-regression.e2e.spec.ts-snapshots/
+          git diff --staged --quiet \
+            && echo "Baselines unchanged — nothing to commit." \
+            || (git commit -m "chore: update visual regression baselines [skip ci]" \
+                && git push origin ${{ inputs.branch }})
