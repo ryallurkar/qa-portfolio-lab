@@ -1,16 +1,9 @@
 name: Visual Regression
 
-# Runs as a separate job on every PR so visual failures are clearly isolated
-# from functional test failures.
-#
-# When tests fail, a bot comment is posted on the PR explaining why and
-# telling the author to comment `/update-snapshots` to regenerate baselines.
-
 on:
   workflow_call:
     inputs:
       artifact-name:
-        description: "Name for the uploaded Playwright diff report artifact"
         type: string
         required: true
 
@@ -24,42 +17,50 @@ jobs:
       VITE_API_BASE_URL: http://localhost:3022
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
         env:
           NODE_ENV: development
-
-      - name: Install Playwright Chromium browser
-        run: npx playwright install chromium --with-deps
-
-      - name: Apply database migrations and seed
-        run: npm run db:deploy && npm run db:seed
-
-      - name: Start API server in background
-        run: npm run start:service &
-
-      - name: Start frontend in background
-        run: npm run dev:client &
-
-      - name: Wait for API to be ready
-        run: npx wait-on tcp:localhost:3022 --timeout 30000
-
-      - name: Wait for frontend to be ready
-        run: npx wait-on tcp:localhost:3000 --timeout 30000
+      - run: npx playwright install chromium --with-deps
+      - run: npm run db:deploy && npm run db:seed
+      - run: npm run start:service &
+      - run: npm run dev:client &
+      - run: npx wait-on tcp:localhost:3022 --timeout 30000
+      - run: npx wait-on tcp:localhost:3000 --timeout 30000
 
       - name: Run visual regression tests
         id: visual
         run: npx playwright test --project=visual
         continue-on-error: true
+
+      - name: Post failure comment — instruct to comment /update-snapshots
+        if: steps.visual.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: [
+                '## 📸 Visual regression failed',
+                '',
+                'Screenshots have changed or no Linux baseline exists yet.',
+                '',
+                '**If the UI change is intentional**, comment on this PR:',
+                '```',
+                '/update-snapshots',
+                '```',
+                'The bot will detect your branch automatically, generate new baselines, and commit them.',
+                'Then re-run this check.',
+                '',
+                '**If it is a regression:** download the `visual-diff-report` artifact to see diffs.',
+              ].join('\n'),
+            });
 
       - name: Fail the job
         if: steps.visual.outcome == 'failure'
