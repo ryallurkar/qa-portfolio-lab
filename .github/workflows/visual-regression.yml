@@ -68,7 +68,7 @@ jobs:
 
       - name: Run visual regression tests
         id: visual
-        run: npx playwright test tests/e2e/visual-regression.e2e.spec.ts --project=chromium
+        run: npx playwright test --project=visual
         continue-on-error: true
 
       - name: Surface actionable guidance on failure

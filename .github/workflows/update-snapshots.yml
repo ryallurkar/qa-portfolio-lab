@@ -67,8 +67,7 @@ jobs:
 
       - name: Generate Linux baselines
         run: |
-          npx playwright test tests/e2e/visual-regression.e2e.spec.ts \
-            --project=chromium --update-snapshots all
+          npx playwright test --project=visual --update-snapshots all
 
       - name: Commit and push updated baselines
         run: |
