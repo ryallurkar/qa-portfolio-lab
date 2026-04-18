@@ -61,36 +61,6 @@ jobs:
         run: npx playwright test --project=visual
         continue-on-error: true
 
-      - name: Post failure comment on PR
-        if: steps.visual.outcome == 'failure' && github.event.pull_request.number != ''
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const artifact = '${{ inputs.artifact-name }}';
-            const branch = context.payload.pull_request.head.ref;
-            const repo = context.repo;
-            const workflowUrl = `https://github.com/${repo.owner}/${repo.repo}/actions/workflows/update-snapshots.yml`;
-            const triggerUrl = `${workflowUrl}?query=branch%3A${encodeURIComponent(branch)}`;
-            await github.rest.issues.createComment({
-              owner: repo.owner,
-              repo: repo.repo,
-              issue_number: context.payload.pull_request.number,
-              body: [
-                '## 📸 Visual regression failed',
-                '',
-                'Screenshots have changed or no Linux baseline exists for this branch yet.',
-                '',
-                '**If the UI change is intentional**, regenerate the baselines:',
-                '',
-                `[![Update Snapshots](https://img.shields.io/badge/▶%20Update%20Snapshots-0075ff?style=for-the-badge&logo=github)](${triggerUrl})`,
-                '',
-                `> Set the **branch** field to \`${branch}\` and click **Run workflow**.`,
-                'Once done, re-run this PR check.',
-                '',
-                `**If it's a regression**, download the \`${artifact}\` artifact above to see side-by-side diffs and fix the code.`,
-              ].join('\n'),
-            });
-
       - name: Fail the job
         if: steps.visual.outcome == 'failure'
         run: exit 1
