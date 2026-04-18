@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     env:
       ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
@@ -59,3 +60,24 @@ jobs:
             && echo "Baselines unchanged." \
             || (git commit -m "chore: update visual regression baselines [skip ci]" \
                 && git push origin ${{ inputs.branch }})
+
+      - name: Comment on PR that snapshots were updated
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const branch = '${{ inputs.branch }}';
+            const { data: prs } = await github.rest.pulls.list({
+              owner, repo,
+              head: `${owner}:${branch}`,
+              state: 'open',
+            });
+            if (prs.length === 0) {
+              console.log('No open PR found for branch — skipping comment.');
+              return;
+            }
+            await github.rest.issues.createComment({
+              owner, repo,
+              issue_number: prs[0].number,
+              body: '✅ Visual snapshots updated. Re-run the **Visual regression** job to confirm.',
+            });
