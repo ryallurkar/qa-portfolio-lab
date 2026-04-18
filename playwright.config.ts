@@ -26,6 +26,14 @@ export default defineConfig({
       testMatch: "**/*.api.spec.ts",
     },
     {
+      name: "visual",
+      testMatch: "**/*.visual.spec.ts",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: path.join(__dirname, ".auth/user.json"),
+      },
+    },
+    {
       name: "generated",
       testMatch: "tests/generated/**/*.spec.ts",
       use: { ...devices["Desktop Chrome"] },

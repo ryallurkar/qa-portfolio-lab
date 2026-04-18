@@ -16,6 +16,10 @@
     "test:e2e": "playwright test --project=chromium",
     "test:smoke": "playwright test --grep @smoke",
     "test:generated": "playwright test tests/generated",
+    "test:visual": "playwright test --project=visual",
+    "test:visual:update": "playwright test --project=visual --update-snapshots all",
+    "test:visual:linux": "docker run --rm --ipc=host -v $(pwd):/work -w /work mcr.microsoft.com/playwright:v1.58.2-jammy sh -c 'npm ci && npm run test:visual'",
+    "test:visual:linux:update": "docker run --rm --ipc=host -v $(pwd):/work -w /work mcr.microsoft.com/playwright:v1.58.2-jammy sh -c 'npm ci && npm run test:visual:update'",
     "generate": "tsc -p scripts/tsconfig.json && node dist-scripts/generate.js"
   },
   "prisma": {
