@@ -3,18 +3,8 @@ name: Visual Regression
 # Runs as a separate job on every PR so visual failures are clearly isolated
 # from functional test failures.
 #
-# Failure modes and what they mean for the PR author:
-#
-#   "snapshot doesn't exist"  — no Linux baseline committed for this file.
-#                               Trigger the "Update Visual Snapshots" workflow
-#                               on this branch to generate and commit one.
-#
-#   "screenshot comparison"   — UI has changed vs the committed baseline.
-#                               If intentional: trigger "Update Visual Snapshots".
-#                               If unintentional: fix the regression.
-#
-# The HTML report (with side-by-side diffs) is uploaded as an artifact every
-# run so the author can see exactly what changed.
+# When tests fail, a bot comment is posted on the PR explaining why and
+# telling the author to comment `/update-snapshots` to regenerate baselines.
 
 on:
   workflow_call:
@@ -28,6 +18,9 @@ jobs:
   visual:
     name: Visual regression
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     env:
       ACCESS_TOKEN_SECRET: ${{ secrets.ACCESS_TOKEN_SECRET }}
@@ -71,28 +64,34 @@ jobs:
         run: npx playwright test --project=visual
         continue-on-error: true
 
-      - name: Surface actionable guidance on failure
+      - name: Post failure comment on PR
+        if: steps.visual.outcome == 'failure' && github.event.pull_request.number != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifact = '${{ inputs.artifact-name }}';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: [
+                '## 📸 Visual regression failed',
+                '',
+                'Screenshots have changed or no Linux baseline exists for this branch yet.',
+                '',
+                '**If the UI change is intentional**, comment on this PR:',
+                '```',
+                '/update-snapshots',
+                '```',
+                'The bot will generate new baselines and commit them to your branch. Then re-run this check.',
+                '',
+                `**If it's a regression**, download the \`${artifact}\` artifact to see side-by-side diffs and fix the code.`,
+              ].join('\n'),
+            });
+
+      - name: Fail the job
         if: steps.visual.outcome == 'failure'
-        run: |
-          echo ""
-          echo "──────────────────────────────────────────────────────────────"
-          echo "  Visual regression tests failed."
-          echo ""
-          echo "  Possible causes:"
-          echo "  1. No Linux baseline committed yet (first run on this branch)."
-          echo "  2. The UI has changed vs the committed baseline."
-          echo ""
-          echo "  What to do:"
-          echo "  → Go to Actions → 'Update Visual Snapshots' → Run workflow"
-          echo "  → Set 'branch' to: ${{ github.head_ref }}"
-          echo "  → That will generate and commit Linux baselines to your branch."
-          echo "  → Re-run this CI check once it completes."
-          echo ""
-          echo "  Download the artifact '${ARTIFACT_NAME}' to see side-by-side diffs."
-          echo "──────────────────────────────────────────────────────────────"
-          exit 1
-        env:
-          ARTIFACT_NAME: ${{ inputs.artifact-name }}
+        run: exit 1
 
       - name: Upload visual diff report
         uses: actions/upload-artifact@v4
