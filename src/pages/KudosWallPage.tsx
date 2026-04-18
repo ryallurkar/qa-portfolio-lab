@@ -61,7 +61,7 @@ const KudosWallPage: React.FC = () => {
       {/* Top navigation bar */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-indigo-600">Kudos Wall</h1>
+          <h1 className="text-xl font-bold text-purple-600">Kudos Wall</h1>
           <div className="flex items-center gap-3">
             {user && (
               <span className="text-sm text-gray-600">
@@ -72,7 +72,7 @@ const KudosWallPage: React.FC = () => {
             <button
               data-testid="create-kudos-btn"
               onClick={() => setModalOpen(true)}
-              className="bg-indigo-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors"
+              className="bg-purple-600 text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-purple-700 transition-colors"
             >
               Give Kudos
             </button>
