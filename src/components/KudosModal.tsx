@@ -100,9 +100,16 @@ const KudosModal: React.FC<KudosModalProps> = ({ onClose }) => {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               rows={4}
+              maxLength={500}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
               placeholder="Write something kind…"
             />
+            <p
+              data-testid="kudos-char-count"
+              className={`text-xs text-right mt-1 ${message.length >= 480 ? "text-red-500" : "text-gray-400"}`}
+            >
+              {message.length} / 500
+            </p>
           </div>
 
           <div className="mb-6">
